@@ -60,12 +60,64 @@ public class Spreadsheet implements Serializable {
         cells.get(0).overrideText(cellCode.toString());
     }
 
-    public void refreshAllFormulaCells() {
+    public boolean refreshAllFormulaCells(SpreadsheetCell editedCell) {
+        List<SpreadsheetCell> cells = topologicallySortedCells();
+
+        if (cells == null) {
+            return false;
+        }
+
         for (SpreadsheetCell cell : cells) {
             if (cell.hasFormula()) {
                 cell.calculateFormula();
             }
         }
+
+        return true;
+    }
+
+    public List<SpreadsheetCell> topologicallySortedCells() {
+        List<SpreadsheetCell> L = new ArrayList<>();
+        List<SpreadsheetCell> S = new ArrayList<>();
+
+        for (SpreadsheetCell cell : cells) {
+            if (cell.hasFormula() && cell.timesReferenced() == 0) {
+                S.add(cell);
+            }
+        }
+
+        while (!S.isEmpty()) {
+            SpreadsheetCell n = S.remove(0);
+            L.add(n);
+            for (SpreadsheetCell m : cells) {
+                if (n.referencesCell(m.getCode())) {
+                    n.removeReference(m.getCode());
+                    if (m.timesReferenced() == 0) {
+                        S.add(m);
+                    }
+                }
+            }
+        }
+
+        if (anyReferences()) {
+            return null;
+        } else {
+            return L;
+        }
+    }
+
+    private boolean anyReferences() {
+        for (SpreadsheetCell cell : cells) {
+            if (cell.hasFormula() && cell.referenceCount() > 0) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public SpreadsheetCell[] getAllCells() {
+        return cells.toArray(new SpreadsheetCell[0]);
     }
 
     public void setSelectedCell(SpreadsheetCell selectedCell) {

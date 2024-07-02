@@ -24,7 +24,16 @@ public record CellCode(int x, int y) {
 
     @Override
     public String toString() {
-        return String.valueOf((char)('A' + x - 1)) + y;
+        return String.valueOf((char) ('A' + x - 1)) + y;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other != null && other instanceof CellCode code) {
+            return x == code.x && y == code.y;
+        }
+
+        return false;
     }
 
     public CellCode add(CellCode other) {

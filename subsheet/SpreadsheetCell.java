@@ -1,15 +1,16 @@
 package subsheet;
 
-import sil.*;
-
+import java.awt.*;
+import java.io.Serializable;
+import java.text.DecimalFormat;
+import java.util.HashSet;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
-import java.awt.*;
-import java.util.List;
-import java.io.Serializable;
-import java.text.DecimalFormat;
-import java.util.NoSuchElementException;
+import sil.*;
 
 public class SpreadsheetCell implements Serializable {
     private final Spreadsheet spreadsheet;
@@ -20,6 +21,7 @@ public class SpreadsheetCell implements Serializable {
     private String displayText;
     private final int x;
     private final int y;
+    private HashSet<CellCode> references = new HashSet<>();
 
     public SpreadsheetCell(Spreadsheet spreadsheet, int x, int y, int size) {
         this(spreadsheet, x, y, size, false, "");
@@ -136,7 +138,11 @@ public class SpreadsheetCell implements Serializable {
                 displayText = content;
             }
 
-            spreadsheet.refreshAllFormulaCells();
+            if(!spreadsheet.refreshAllFormulaCells(this) && hasFormula()) {
+                System.out.println("A");
+                textField.setText("*CIRC_REF");
+return;
+            }
         }
 
         textField.setText(displayText);
@@ -155,6 +161,11 @@ public class SpreadsheetCell implements Serializable {
             textField.setText(displayText);
             return;
         }
+
+        references.clear();
+        Stream<CellCode> cellReferences = tokens.stream().filter(t -> t.type() == TokenType.CELL)
+                .map(t -> CellCode.fromString(t.lexeme())).distinct();
+        references.addAll(cellReferences.toList());
 
         SILParser parser = new SILParser(tokens);
         Expression expression = parser.parse();
@@ -211,6 +222,30 @@ public class SpreadsheetCell implements Serializable {
         }
 
         textField.setText(displayText);
+    }
+
+    public boolean referencesCell(CellCode other) {
+        return references.contains(other);
+    }
+
+    public void removeReference(CellCode other) {
+        references.remove(other);
+    }
+
+    public int referenceCount() {
+        return references.size();
+    }
+
+    public int timesReferenced() {
+        int times = 0;
+
+        for (SpreadsheetCell cell : spreadsheet.getAllCells()) {
+            if (cell.referencesCell(getCode())) {
+                times++;
+            }
+        }
+
+        return times;
     }
 
     public void addToPanel(JPanel panel) {
