@@ -1,0 +1,13 @@
+expr -> equality_rule
+equality_rule -> comparison_rule ((EQUAL | EXCLAMATION_EQUAL) equality_rule)?
+comparison_rule -> add_sub_rule ((GREATER_THAN | LESSER_THAN | GREATER_EQUAL | LESSER_EQUAL) comparison_rule)?
+add_sub_rule -> mul_div_rule ((PLUS | MINUS) add_sub_rule)?
+mul_div_rule -> unary_rule ((ASTERISK | SLASH) mul_div_rule)?
+unary_rule -> (EXCLAMATION unary_rule) | primary_rule
+primary_rule -> IDENTIFIER | NUMBER | STRING | TRUE | FALSE | group_rule | func_call | range_rule
+range_rule -> CELL DOT_DOT CELL
+group_rule -> PAREN_LEFT expr PAREN_RIGHT
+func_call -> IDENTIFIER PAREN_LEFT ((expr COMMA)* expr)? PAREN_RIGHT
+
+2 + 3 * 4: (+ 2 (* 3 4))
+3 * 4 + 2: (+ 2 (* 3 4))
